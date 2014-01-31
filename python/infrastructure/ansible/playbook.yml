@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: "Install git"
+      apt: name="git" state="installed"
+
+    - name: "Get us pypy"
+      get_url: url=https://bitbucket.org/pypy/pypy/downloads/pypy-2.2.1-linux64.tar.bz2 dest=/tmp/pypy.tar.bz2
+
+    - name: "Unpack pypy"
+      command: tar -xf /tmp/pypy.tar.bz2 creates=/tmp/pypy-2.2.1-linux64 chdir=/tmp
+
+    - name: "Put pypy in a nicer place"
+      file: src=/tmp/pypy-2.2.1-linux64 dest=/tmp/pypy state=link
+
