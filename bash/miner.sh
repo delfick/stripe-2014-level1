@@ -12,6 +12,15 @@ if [[ -z $2 ]]; then
 fi
 export clone_url=$2
 
+if [[ $3 == "--fast" ]]; then
+    export $fast=1
+    echo "Ok, using the C loop"
+    if ! gcc -lcrypt hasher.c -o hasher; then
+        echo "Failed to compile the hasher :("
+        exit 1
+    fi
+fi
+
 # Work out where our done file is
 # This file determines if we should stop now
 export root_dir=$(pwd -P)
@@ -129,44 +138,36 @@ makecommits() {
         fi
 
         # Keep trying to make a commit till it works
-        giveup=0
+        if [[ ! -z $fast && $fast == 1 ]]; then
+            # Let's use the C loop
+            sha1=$(./hasher $difficulty "$base" $done_file $update_file)
+        else
+            while true; do
+                nonce=$(uuidgen)
+                next=$(printf "%s%s" "$base" "$nonce")
+                sha1=$( (printf "commit 280\0"; echo "$next") | sha1sum | awk '{ print $1 }')
 
-        while true; do
-            nonce=$(uuidgen)
-            next=$(printf "%s%s" "$base" "$nonce")
-            sha1=$( (printf "commit 280\0"; echo "$next") | sha1sum | awk '{ print $1 }')
-
-            ((tried=$tried + 1))
-            if ((tried % 500 == 0)); then
-                echo $tried > $counterPipe
-                ((tried = 0))
-                if [[ -f $done_file ]]; then
-                    break
+                ((tried=$tried + 1))
+                if ((tried % 500 == 0)); then
+                    echo $tried > $counterPipe
+                    ((tried = 0))
+                    [[ -f $done_file ]] && break
+                    [[ -f $update_file ]] && break
                 fi
 
-                if [[ -f $update_file ]]; then
-                    giveup=1
+                if [[ "$sha1" == "000"* ]]; then
+                    echo "===$nonce=== $parent"
+                    echo -e "\t$sha1\n\t$difficulty\n\t---"
+                fi
+
+                if [[ "$sha1" < "$difficulty" ]]; then
                     break
                 fi
-            fi
-
-            if [[ "$sha1" == "000"* ]]; then
-                echo "===$nonce=== $parent"
-                echo -e "\t$sha1\n\t$difficulty\n\t---"
-            fi
-
-            if [[ "$sha1" < "$difficulty" ]]; then
-                break
-            fi
-        done
-
-        if [[ -f $done_file ]]; then
-            break
+            done
         fi
 
-        if ((giveup == 1)); then
-            continue
-        fi
+        [[ -f $done_file ]] && break
+        [[ -f $update_file ]] && continue
 
         echo "Found one! $sha1"
 

@@ -1,4 +1,6 @@
 *.pyc
 python/done
 python/trees/
+test_base/
+test_change/
 
