@@ -3,4 +3,8 @@ python/done
 python/trees/
 test_base/
 test_change/
+scala/project/
+scala/target/
+scala/.idea/
+scala/.idea_modules/
 

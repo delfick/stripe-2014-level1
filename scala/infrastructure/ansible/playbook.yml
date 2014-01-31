@@ -1,0 +1,40 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: "Install dependencies"
+      apt: name="{{item}}" state=installed
+      with_items:
+        - python-apt
+        - python-pycurl
+        - curl
+
+    - name: "Does sbt exist?"
+      shell: 'sbt --version || echo "not found"'
+      register: sbtversion
+      changed_when: false
+
+    - name: "Does java exist?"
+      shell: 'java -version || echo "not found"'
+      register: javaversion
+      changed_when: false
+
+    - name: "Install java repo"
+      apt_repository: repo="ppa:webupd8team/java"
+      when: javaversion.stdout == "not found"
+
+    - name: "Automatically select the Oracle License"
+      shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+      when: javaversion.stdout == "not found"
+
+    - name: "Install Java"
+      apt: pkg="oracle-java7-installer" update-cache=yes state=latest
+      when: javaversion.stdout == "not found"
+
+    - name: "Download sbt"
+      get_url: url="http://repo.scala-sbt.org/scalasbt/sbt-native-packages/org/scala-sbt/sbt/0.13.1/sbt.deb" dest="/tmp/sbt.deb"
+
+    - name: "Install sbt"
+      command: dpkg -i /tmp/sbt.deb
+      when: sbtversion.stdout == "not found"
+
