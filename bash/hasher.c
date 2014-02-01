@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     char null = '\0';
     long attempt = 0l;
     FILE * counter_file;
+    long incremented = 0l;
 
     // Get difficulty and determine how long it is
     char * difficulty = argv[1];
@@ -62,12 +63,11 @@ int main(int argc, char **argv) {
     const EVP_MD *md;
     EVP_MD_CTX * mdctx;
     EVP_MD_CTX * mdctx2;
-    unsigned char * hash = OPENSSL_malloc(EVP_MD_size(EVP_sha1()));
+    unsigned char * hash = malloc(EVP_MD_size(EVP_sha1()));
 
     // Variables for creating the sha
     char * next;
     char * sha1 = malloc(sizeof(char) * 41);
-    char * sha1_padded = malloc(sizeof(char) * 41);
     static char hex_digits[] = "0123456789abcdef";
 
     // Variables for our uuid
@@ -76,16 +76,18 @@ int main(int argc, char **argv) {
 
     // Lookup table for converting hash to a hexdigest
     char * lookup_table[256];
+    char * next_entry;
     for (i = 0; i < 256; i++) {
-        next = malloc(sizeof(char) * 2);
-        sprintf(next, "%02x", i);
-        lookup_table[i] = next;
+        next_entry = malloc(sizeof(char) * 3);
+        sprintf(next_entry, "%02x", i);
+        lookup_table[i] = next_entry;
     }
 
     // Generate example nonce to get the length of the nonce
-    uuid_generate(newUUID);
-    uuid_unparse(newUUID, uuid_string);
-    sprintf(nonce, "%s %zu", uuid_string, time(0));
+    /* uuid_generate(newUUID); */
+    /* uuid_unparse(newUUID, uuid_string); */
+    incremented += 600;
+    sprintf(nonce, "%zu %zu", incremented, time(0));
     size_t nonce_length = strlen(nonce);
 
     // Craft the header
@@ -98,7 +100,7 @@ int main(int argc, char **argv) {
     EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL);
     EVP_DigestUpdate(mdctx, gitstart, strlen(gitstart));
     EVP_DigestUpdate(mdctx, &null, 1);
-    EVP_DigestUpdate(mdctx, commit_base, strlen(commit_base));
+    EVP_DigestUpdate(mdctx, commit_base, commit_base_length);
 
 // Gotos aren't bad... right?
 // Keep going back here till we have a sha that is good
@@ -120,9 +122,11 @@ retry:
     }
 
     // Generate a uuid for the nonce
-    uuid_generate(newUUID);
-    uuid_unparse(newUUID, uuid_string);
-    sprintf(nonce, "%s %zu", uuid_string, time(0));
+    /* uuid_generate(newUUID); */
+    /* uuid_unparse(newUUID, uuid_string); */
+    /* sprintf(nonce, "%s %zu", uuid_string, time(0)); */
+    incremented += 600;
+    sprintf(nonce, "%zu %zu", incremented, time(0));
 
     // Initialize a new message digest
     mdctx2 = EVP_MD_CTX_create();
@@ -140,15 +144,18 @@ retry:
         difficulty_point = i * 2;
 
         if (difficulty_point < difficulty_length && next[0] > difficulty[difficulty_point]) {
+            EVP_MD_CTX_destroy(mdctx2);
             goto retry;
         }
         sha1[difficulty_point] = next[0];
 
         if (difficulty_point+1 < difficulty_length && next[1] > difficulty[difficulty_point+1]) {
+            EVP_MD_CTX_destroy(mdctx2);
             goto retry;
         }
         sha1[difficulty_point+1] = next[1];
     }
+    sha1[40] = '\0';
 
     // Print the sha and nonce for the bash script
     printf("%s;%s", sha1, nonce);
@@ -158,6 +165,17 @@ retry:
         counter_file = fopen(counter_file_loc, "w");
         fprintf(counter_file, "%zu\n", attempt);
         fclose(counter_file);
+    }
+
+    // Free all the things!
+    EVP_MD_CTX_destroy(mdctx);
+    EVP_MD_CTX_destroy(mdctx2);
+    free(sha1);
+    free(hash);
+    free(uuid_string);
+    free(commit_base);
+    for (i = 0; i < 256; i++) {
+        free(lookup_table[i]);
     }
 
     // And we're done !
