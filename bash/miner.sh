@@ -15,7 +15,7 @@ export clone_url=$2
 if [[ $3 == "--fast" ]]; then
     export fast=1
     echo "Ok, using the C loop"
-    if ! gcc hasher.c -lcrypto -luuid -o hasher; then
+    if ! gcc hasher.c -O3 -lcrypto -luuid -o hasher; then
         echo "Failed to compile the hasher :("
         exit 1
     fi
@@ -131,7 +131,7 @@ makecommits() {
             parent=$(git rev-parse HEAD)
             difficulty=$(cat difficulty.txt)
 
-            author=$(printf "%s <%s> 1390783500 +0000" "$(git config --get user.name)" "$(git config --get user.email)")
+            author=$(printf "%s <%s> $(date +%s) +0000" "$(git config --get user.name)" "$(git config --get user.email)")
             base=$(printf "tree %s\nparent %s\nauthor %s\ncommitter %s\n\nGive me bitcoins!\n\nnonce:" "$tree" "$parent" "$author" "$author")
             ((base_length=$(echo $base | wc -c) + 1))
             rm $update_file -f
@@ -140,7 +140,7 @@ makecommits() {
         # Keep trying to make a commit till it works
         if [[ ! -z $fast && $fast == 1 ]]; then
             # Let's use the C loop
-            if ! info=$(echo "$base" | $root_dir/hasher $difficulty $base_length $done_file $update_file $counterPipe); then
+            if ! info=$(echo "$base" | $root_dir/hasher $num $difficulty $base_length $done_file $update_file $counterPipe); then
                 continue
             fi
 

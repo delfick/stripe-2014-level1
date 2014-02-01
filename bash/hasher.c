@@ -4,20 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <uuid/uuid.h>
 #include <openssl/evp.h>
 
 /*
  *
  * Compile with:
- *    gcc miner.c -lcrypto -luuid
- * You made need to install uuid-dev
+ *    gcc miner.c -lcrypto
  *
 */
 
 int main(int argc, char **argv) {
-    if (argc < 6) {
-        printf("Usage: ./%s <difficulty> <commit_base_length> <done_file> <update_file> <counter_file>", argv[0]);
+    if (argc < 7) {
+        printf("Usage: ./%s <num> <difficulty> <commit_base_length> <done_file> <update_file> <counter_file>", argv[0]);
         exit(1);
     }
 
@@ -34,24 +32,32 @@ int main(int argc, char **argv) {
     char null = '\0';
     long attempt = 0l;
     FILE * counter_file;
-    long incremented = 0l;
+
+    // Start somewhere uniquish
+    int num;
+    sscanf(argv[1], "%d", &num);
+    long incremented = num * 400l;
 
     // Get difficulty and determine how long it is
-    char * difficulty = argv[1];
+    char * difficulty = argv[2];
     int difficulty_length = strlen(difficulty);
 
     // Get the length of our commit base and turn it into a size_t
     size_t commit_base_length;
-    sscanf(argv[2], "%lu", &commit_base_length);
+    sscanf(argv[3], "%lu", &commit_base_length);
 
     // Get other things from cli args
-    char * done_file = argv[3];
-    char * update_file = argv[4];
-    char * counter_file_loc = argv[5];
+    char * done_file = argv[4];
+    char * update_file = argv[5];
+    char * counter_file_loc = argv[6];
 
     // Get the base of the commit from stdin
     char * commit_base = malloc(sizeof(char) * (commit_base_length + 1));
-    fread(commit_base, 1, commit_base_length, stdin);
+    if (fread(commit_base, 1, commit_base_length, stdin) != commit_base_length) {
+        fprintf(stderr, "Failed to read from stdin\n");
+        FILE * the_done_file = fopen(done_file, "w");
+        fclose(the_done_file);
+    }
     commit_base[commit_base_length] = '\0';
 
     unsigned char nonce[200];
@@ -70,10 +76,6 @@ int main(int argc, char **argv) {
     char * sha1 = malloc(sizeof(char) * 41);
     static char hex_digits[] = "0123456789abcdef";
 
-    // Variables for our uuid
-    uuid_t newUUID;
-    char * uuid_string = malloc(sizeof(char) * 41);
-
     // Lookup table for converting hash to a hexdigest
     char * lookup_table[256];
     char * next_entry;
@@ -84,8 +86,6 @@ int main(int argc, char **argv) {
     }
 
     // Generate example nonce to get the length of the nonce
-    /* uuid_generate(newUUID); */
-    /* uuid_unparse(newUUID, uuid_string); */
     incremented += 600;
     sprintf(nonce, "%zu %zu", incremented, time(0));
     size_t nonce_length = strlen(nonce);
@@ -121,10 +121,7 @@ retry:
         }
     }
 
-    // Generate a uuid for the nonce
-    /* uuid_generate(newUUID); */
-    /* uuid_unparse(newUUID, uuid_string); */
-    /* sprintf(nonce, "%s %zu", uuid_string, time(0)); */
+    // Generate the nonce
     incremented += 600;
     sprintf(nonce, "%zu %zu", incremented, time(0));
 
@@ -172,7 +169,6 @@ retry:
     EVP_MD_CTX_destroy(mdctx2);
     free(sha1);
     free(hash);
-    free(uuid_string);
     free(commit_base);
     for (i = 0; i < 256; i++) {
         free(lookup_table[i]);
