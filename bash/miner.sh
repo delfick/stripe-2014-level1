@@ -13,9 +13,9 @@ fi
 export clone_url=$2
 
 if [[ $3 == "--fast" ]]; then
-    export $fast=1
+    export fast=1
     echo "Ok, using the C loop"
-    if ! gcc -lcrypt hasher.c -o hasher; then
+    if ! gcc hasher.c -lcrypto -luuid -o hasher; then
         echo "Failed to compile the hasher :("
         exit 1
     fi
@@ -32,7 +32,6 @@ echo "Done file at $done_file"
 rm $done_file -f
 rm -rf trees
 mkdir trees
-rm -rf playground
 
 rm -f $counterPipe
 trap "rm -f $counterPipe" EXIT
@@ -134,13 +133,16 @@ makecommits() {
 
             author=$(printf "%s <%s> 1390783500 +0000" "$(git config --get user.name)" "$(git config --get user.email)")
             base=$(printf "tree %s\nparent %s\nauthor %s\ncommitter %s\n\nGive me bitcoins!\n\nnonce:" "$tree" "$parent" "$author" "$author")
+            ((base_length=$(echo $base | wc -c) + 1))
             rm $update_file -f
         fi
 
         # Keep trying to make a commit till it works
         if [[ ! -z $fast && $fast == 1 ]]; then
             # Let's use the C loop
-            sha1=$(./hasher $difficulty "$base" $done_file $update_file)
+            info=$(echo "$base" | $root_dir/hasher $difficulty $base_length $done_file $update_file $counterPipe)
+            read sha1 nonce <<<$(IFS=";"; echo $info)
+            next=$(printf "%s%s" "$base" "$nonce")
         else
             while true; do
                 nonce=$(uuidgen)
@@ -209,8 +211,9 @@ seq $processors | xargs -I{} -n 1 -P $processors bash -c "makecommits {}" &
 sleep 10
 
 {
-    git clone $clone_url playground
-    cd playground
+    playground=$root_dir/trees/tester
+    git clone $clone_url $playground
+    cd $playground
     while true; do
         if [[ -f $done_file ]]; then
             echo "quit" >> $counterPipe

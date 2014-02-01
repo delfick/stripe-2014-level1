@@ -7,4 +7,6 @@ scala/project/
 scala/target/
 scala/.idea/
 scala/.idea_modules/
+bash/trees/
+bash/hasher
 
