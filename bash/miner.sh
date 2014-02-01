@@ -140,7 +140,10 @@ makecommits() {
         # Keep trying to make a commit till it works
         if [[ ! -z $fast && $fast == 1 ]]; then
             # Let's use the C loop
-            info=$(echo "$base" | $root_dir/hasher $difficulty $base_length $done_file $update_file $counterPipe)
+            if ! info=$(echo "$base" | $root_dir/hasher $difficulty $base_length $done_file $update_file $counterPipe); then
+                continue
+            fi
+
             read sha1 nonce <<<$(IFS=";"; echo $info)
             next=$(printf "%s%s" "$base" "$nonce")
         else
