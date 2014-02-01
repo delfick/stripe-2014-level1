@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
     // Generate example nonce to get the length of the nonce
     incremented += 600;
-    sprintf(nonce, "%zu %zu", incremented, time(0));
+    sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
     size_t nonce_length = strlen(nonce);
 
     // Craft the header
@@ -123,7 +123,7 @@ retry:
 
     // Generate the nonce
     incremented += 600;
-    sprintf(nonce, "%zu %zu", incremented, time(0));
+    sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
 
     // Initialize a new message digest
     mdctx2 = EVP_MD_CTX_create();
