@@ -85,6 +85,9 @@ int main(int argc, char **argv) {
         lookup_table[i] = next_entry;
     }
 
+    // Seed the random generator
+    srand(time(NULL) * num);
+
     // Generate example nonce to get the length of the nonce
     incremented += 600;
     sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
@@ -122,7 +125,7 @@ retry:
     }
 
     // Generate the nonce
-    incremented += 600;
+    incremented += rand();
     sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
 
     // Initialize a new message digest
