@@ -96,7 +96,8 @@ int main(int argc, char **argv) {
     // Generate example nonce to get the length of the nonce
     incremented += 600;
     if (forced_nonce == NULL) {
-        sprintf(nonce, "%zu-%d-%zu\n", incremented, num, time(0));
+        incremented += rand();
+        sprintf(nonce, "%020zu-%d-%zu\n", incremented, num, time(0));
     }
     else {
         sprintf(nonce, "%s\n", forced_nonce);
@@ -139,7 +140,7 @@ retry:
     // Generate the nonce
     if (forced_nonce == NULL) {
         incremented += rand();
-        sprintf(nonce, "%zu-%d-%zu\n", incremented, num, time(0));
+        sprintf(nonce, "%020zu-%d-%zu\n", incremented, num, time(0));
     }
     else {
         sprintf(nonce, "%s\n", forced_nonce);

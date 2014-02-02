@@ -177,9 +177,7 @@ makecommits() {
         echo "Found one! $sha1"
 
         actualsha=$(echo "$next" | git hash-object -t commit -w --stdin)
-        if [[ $actualsha == $sha1 ]]; then
-            break
-        else
+        if [[ $actualsha != $sha1 ]]; then
             echo "The way we compute shas is wrong!!! $actualsha != $sha1 (tree $num)"
             echo "$next"
             touch $done_file
@@ -195,11 +193,14 @@ makecommits() {
             else
                 echo "Damn, it didn't push :("
             fi
+            touch $update_file
         else
             echo "Failed to checkout $sha1 for tree $num"
             touch $done_file
             break
         fi
+
+        git fetch origin
         git reset --hard origin/master
     done
     echo "$num says bye!"
