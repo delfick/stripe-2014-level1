@@ -141,7 +141,10 @@ makecommits() {
         # Keep trying to make a commit till it works
         if [[ ! -z $fast && $fast == 1 ]]; then
             # Let's use the C loop
-            if ! info=$(echo "$base" | $root_dir/hasher $num $difficulty $base_length $done_file $update_file $counterPipe); then
+            info=$(echo "$base" | $root_dir/hasher $num $difficulty $base_length $done_file $update_file $counterPipe)
+            rc=$?
+            if (($rc != 0)); then
+                echo "The hasher for $num died.... with returncode $rc"
                 continue
             fi
 
