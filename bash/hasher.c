@@ -43,16 +43,21 @@ int main(int argc, char **argv) {
     int difficulty_length = strlen(difficulty);
 
     // Get the length of our commit base and turn it into a size_t
-    size_t commit_base_length;
-    sscanf(argv[3], "%lu", &commit_base_length);
+    int commit_base_length;
+    sscanf(argv[3], "%d", &commit_base_length);
 
     // Get other things from cli args
     char * done_file = argv[4];
     char * update_file = argv[5];
     char * counter_file_loc = argv[6];
 
+    char * forced_nonce = NULL;
+    if (argc > 7) {
+        forced_nonce = argv[7];
+    }
+
     // Get the base of the commit from stdin
-    char * commit_base = malloc(sizeof(char) * (commit_base_length + 1));
+    char * commit_base = malloc(sizeof(char) * commit_base_length + 1);
     if (fread(commit_base, 1, commit_base_length, stdin) != commit_base_length) {
         fprintf(stderr, "Failed to read from stdin\n");
         FILE * the_done_file = fopen(done_file, "w");
@@ -90,19 +95,26 @@ int main(int argc, char **argv) {
 
     // Generate example nonce to get the length of the nonce
     incremented += 600;
-    sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
+    if (forced_nonce == NULL) {
+        sprintf(nonce, "%zu-%d-%zu\n", incremented, num, time(0));
+    }
+    else {
+        sprintf(nonce, "%s\n", forced_nonce);
+    }
     size_t nonce_length = strlen(nonce);
 
     // Craft the header
-    sprintf(datalen, "%zu", commit_base_length + nonce_length + 1);
+    sprintf(datalen, "%zu", commit_base_length + nonce_length);
     sprintf(gitstart, "commit %s", datalen);
+    fprintf(stderr, "%s", gitstart);
+    fprintf(stderr, "%s", commit_base);
+    fprintf(stderr, "%s\n", nonce);
 
     // Start a message digest
     // We copy this and apply new nonces to it in a loop
     mdctx = EVP_MD_CTX_create();
     EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL);
-    EVP_DigestUpdate(mdctx, gitstart, strlen(gitstart));
-    EVP_DigestUpdate(mdctx, &null, 1);
+    EVP_DigestUpdate(mdctx, gitstart, strlen(gitstart)+1);
     EVP_DigestUpdate(mdctx, commit_base, commit_base_length);
 
 // Gotos aren't bad... right?
@@ -125,15 +137,20 @@ retry:
     }
 
     // Generate the nonce
-    incremented += rand();
-    sprintf(nonce, "%zu %d %zu", incremented, num, time(0));
+    if (forced_nonce == NULL) {
+        incremented += rand();
+        sprintf(nonce, "%zu-%d-%zu\n", incremented, num, time(0));
+    }
+    else {
+        sprintf(nonce, "%s\n", forced_nonce);
+    }
 
     // Initialize a new message digest
     mdctx2 = EVP_MD_CTX_create();
     EVP_DigestInit_ex(mdctx2, EVP_sha1(), NULL);
 
     // Copy the message digest and create our sha
-    EVP_MD_CTX_copy_ex(mdctx, mdctx2);
+    EVP_MD_CTX_copy_ex(mdctx2, mdctx);
     EVP_DigestUpdate(mdctx2, nonce, nonce_length);
     EVP_DigestFinal(mdctx2, hash, &md_len);
 
