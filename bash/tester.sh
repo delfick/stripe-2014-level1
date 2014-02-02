@@ -51,7 +51,7 @@ echo ""
 echo "Giving to hasher"
 echo -e "~~~~~~~~~~~~~~~~~~~~\n$commit_base\n~~~~~~~~~~~~~~~"
 
-gcc $root_dir/hasher.c -O3 -g -lcrypto -luuid -o $root_dir/hasher
+gcc $root_dir/hasher.c -O3 -g -lcrypto -o $root_dir/hasher
 info=$(echo "$commit_base" | $root_dir/hasher 1 $difficulty $commit_base_length $done_file $update_file $counter_file $nonce)
 
 echo ""

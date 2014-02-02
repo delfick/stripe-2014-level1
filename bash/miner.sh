@@ -15,7 +15,7 @@ export clone_url=$2
 if [[ $3 == "--fast" ]]; then
     export fast=1
     echo "Ok, using the C loop"
-    if ! gcc hasher.c -O3 -lcrypto -luuid -o hasher; then
+    if ! gcc hasher.c -O3 -lcrypto -o hasher; then
         echo "Failed to compile the hasher :("
         exit 1
     fi
