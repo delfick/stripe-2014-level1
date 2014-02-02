@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
     int i;
     int j;
     int padLen;
+    int position;
     int difficulty_point;
 
     // Used to check if files exist
@@ -58,12 +59,17 @@ int main(int argc, char **argv) {
 
     // Get the base of the commit from stdin
     char * commit_base = malloc(sizeof(char) * commit_base_length + 1);
-    if (fread(commit_base, 1, commit_base_length, stdin) != commit_base_length) {
-        fprintf(stderr, "Failed to read from stdin\n");
-        FILE * the_done_file = fopen(done_file, "w");
-        fclose(the_done_file);
+    position = 0;
+    while (!feof(stdin)) {
+        if (fread(commit_base + position, sizeof(char), 1, stdin) != 1) {
+            if (position < commit_base_length + 1) {
+                fprintf(stderr, "Failed to read from stdin got to %d\n", position);
+                FILE * the_done_file = fopen(done_file, "w");
+                fclose(the_done_file);
+            }
+        }
+        position ++;
     }
-    commit_base[commit_base_length] = '\0';
 
     unsigned char nonce[200];
     unsigned char datalen[10];
@@ -107,9 +113,6 @@ int main(int argc, char **argv) {
     // Craft the header
     sprintf(datalen, "%zu", commit_base_length + nonce_length);
     sprintf(gitstart, "commit %s", datalen);
-    fprintf(stderr, "%s", gitstart);
-    fprintf(stderr, "%s", commit_base);
-    fprintf(stderr, "%s\n", nonce);
 
     // Start a message digest
     // We copy this and apply new nonces to it in a loop
@@ -133,6 +136,7 @@ retry:
         attempt = 0;
 
         if (stat(done_file, &buf) == 0 || stat(update_file, &buf) == 0) {
+            fprintf(stderr, "Found done file or update_file for %d\n", num);
             exit(1);
         }
     }
@@ -196,6 +200,7 @@ retry:
     }
 
     // And we're done !
+    fprintf(stderr, "Exiting cleanly!\n");
     exit(0);
 }
 
