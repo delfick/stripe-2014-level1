@@ -117,6 +117,7 @@ makecommits() {
 
         if [[ -z $tree || -f $update_file ]]; then
             git prune
+            git gc
         
             # Only reset and recreate the index if the origin/master changed commit
             git fetch origin
