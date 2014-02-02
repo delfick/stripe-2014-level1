@@ -40,7 +40,7 @@ do_create() {
     echo "------------"
     echo ""
     echo "For outside docker, specify clone_url as"
-    echo "file://$(pwd)/test_base"
+    echo "file://$root_dir/test_base"
     echo ""
     echo "==========================================="
     echo "==========================================="
@@ -58,6 +58,7 @@ change_difficulty() {
 {
     # Run the commands from where this script is
     cd $(dirname ${BASH_SOURCE})
+    export root_dir=$(pwd)
 
     case $1 in
         help)
